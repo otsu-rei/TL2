@@ -36,8 +36,10 @@ int main(int argc, char* argv[]) {
 
 	System::Term();
 
+#ifdef _DEBUG
 	// コンソール表示を確認できるように一時停止
 	System::Pouse();
+#endif
 	return 0;
 
 }
