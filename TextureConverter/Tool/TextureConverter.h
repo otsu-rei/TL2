@@ -24,6 +24,8 @@ public:
 
 	static void ConvertWICToDDS(const std::filesystem::path& filepath);
 
+	static void Usage();
+
 private:
 
 	//=========================================================================================

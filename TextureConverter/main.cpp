@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <iostream>
 #include <format>
+#include <span>
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // Argument enum class
@@ -27,12 +28,27 @@ enum class Argument : size_t {
 // main
 ////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char* argv[]) {
+
+	// argumentの解析
+	std::span<char*> arguments(argv, argc);
+
+#ifdef _DEBUG
+	std::cout << "> input arguments" << std::endl;
+	for (size_t i = 1; i < arguments.size(); ++i) {
+		std::cout << std::format("argument[{}] : {}", i, arguments[i]) << std::endl;
+	}
+#endif
+
 	// argumentの確認
-	System::Assert(argc == magic_enum::enum_count<Argument>(), "invalid argument.");
+	if (arguments.size() < magic_enum::enum_count<Argument>()) {
+		std::cout << std::format("argument error : {} arguments are required.", magic_enum::enum_count<Argument>()) << std::endl;
+		TextureConverter::Usage();
+		std::exit(EXIT_SUCCESS);
+	}
 
 	System::Init();
 
-	TextureConverter::ConvertWICToDDS(argv[static_cast<size_t>(Argument::InputFilepath)]);
+	TextureConverter::ConvertWICToDDS(arguments[static_cast<size_t>(Argument::InputFilepath)]);
 
 	System::Term();
 

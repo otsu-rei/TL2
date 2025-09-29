@@ -38,6 +38,10 @@ void TextureConverter::ConvertWICToDDS(const std::filesystem::path& filepath) {
 
 }
 
+void TextureConverter::Usage() {
+	// TODO: usageの表示
+}
+
 DXGI_FORMAT TextureConverter::ConvertFormatToSRGB(DXGI_FORMAT format) {
 	std::cout << "[TextureConverter] ConvertFormatToSRGB : " << magic_enum::enum_name(format) << " -> " << magic_enum::enum_name(DirectX::MakeSRGB(format)) << std::endl;
 	return DirectX::MakeSRGB(format);
