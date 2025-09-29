@@ -25,13 +25,23 @@ void TextureConverter::ConvertWICToDDS(const std::filesystem::path& filepath) {
 	// imageの読み込み
 	DirectX::ScratchImage image = ImportTexture(filepath);
 
+	// mipmapの生成
+	image = GenerateMipmaps(std::move(image));
+
+	// 圧縮formatの変換
+	image = Compress(std::move(image));
+
 	// ddsファイルとして出力
 	ExportToDDS(filepath, image);
 
-	std::cout << "[TextureConverter] complete." << std::endl;
+	std::cout << "[TextureConverter] ConvertWICToDDS complete." << std::endl;
 
 }
 
+DXGI_FORMAT TextureConverter::ConvertFormatToSRGB(DXGI_FORMAT format) {
+	std::cout << "[TextureConverter] ConvertFormatToSRGB : " << magic_enum::enum_name(format) << " -> " << magic_enum::enum_name(DirectX::MakeSRGB(format)) << std::endl;
+	return DirectX::MakeSRGB(format);
+}
 
 DirectX::ScratchImage TextureConverter::ImportFromHDRFile(const std::filesystem::path& filepath) {
 
@@ -95,9 +105,53 @@ DirectX::ScratchImage TextureConverter::ImportTexture(const std::filesystem::pat
 	}
 }
 
-DXGI_FORMAT TextureConverter::ConvertFormatToSRGB(DXGI_FORMAT format) {
-	std::cout << "[TextureConverter] ConvertFormatToSRGB : " << magic_enum::enum_name(format) << " -> " << magic_enum::enum_name(DirectX::MakeSRGB(format)) << std::endl;
-	return DirectX::MakeSRGB(format);
+DirectX::ScratchImage TextureConverter::GenerateMipmaps(DirectX::ScratchImage&& image) {
+
+	if (image.GetMetadata().mipLevels > 1) {
+		//!< 既にmipmapが存在する場合は生成しない
+		std::cout << "[TextureConverter] GenerateMipmaps (already has mipmaps.)" << std::endl;
+		return std::move(image);
+	}
+
+	DirectX::ScratchImage mipimage = {};
+
+	auto hr = DirectX::GenerateMipMaps(
+		image.GetImages(),
+		image.GetImageCount(),
+		image.GetMetadata(),
+		DirectX::TEX_FILTER_DEFAULT,
+		0,
+		mipimage
+	);
+	System::Assert(SUCCEEDED(hr), "mipmaps create failed.");
+
+	std::cout << "[TextureConverter] GenerateMipmap complete." << std::endl;
+	return mipimage;
+}
+
+DirectX::ScratchImage TextureConverter::Compress(DirectX::ScratchImage&& image) {
+
+	if (DirectX::IsCompressed(image.GetMetadata().format)) {
+		//!< 既に圧縮formatの場合は変換しない
+		std::cout << "[TextureConverter] Compress (already compressed format.)" << std::endl;
+		return std::move(image);
+	}
+
+	DirectX::ScratchImage compimage = {};
+
+	auto hr = DirectX::Compress(
+		image.GetImages(),
+		image.GetImageCount(),
+		image.GetMetadata(),
+		DXGI_FORMAT_BC7_UNORM_SRGB,
+		DirectX::TEX_COMPRESS_BC7_QUICK | DirectX::TEX_COMPRESS_SRGB_OUT | DirectX::TEX_COMPRESS_PARALLEL,
+		1.0f,
+		compimage
+	);
+	System::Assert(SUCCEEDED(hr), "texture compress failed.");
+
+	std::cout << "[TextureConverter] Compress complete." << std::endl;
+	return compimage;
 }
 
 void TextureConverter::ExportToDDS(const std::filesystem::path& filepath, DirectX::ScratchImage& image) {
@@ -106,18 +160,14 @@ void TextureConverter::ExportToDDS(const std::filesystem::path& filepath, Direct
 	std::filesystem::path path = filepath;
 	path.replace_extension(".dds");
 
-	DirectX::TexMetadata metadata = image.GetMetadata();
-
-	// SRGB Formatに変換
-	metadata.format = ConvertFormatToSRGB(metadata.format);
-
 	auto hr = DirectX::SaveToDDSFile(
 		image.GetImages(),
 		image.GetImageCount(),
-		metadata,
+		image.GetMetadata(),
 		DirectX::DDS_FLAGS_NONE,
 		path.generic_wstring().c_str()
 	);
 	System::Assert(SUCCEEDED(hr), "texture export failed. filepath: " + path.generic_string());
 
+	std::cout << "[TextureConverter] ExportToDDS complete. filename: " << path.filename().generic_string() << std::endl;
 }
