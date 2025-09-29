@@ -35,6 +35,13 @@ void TextureConverter::Option::Parse(const std::span<char*>& options) {
 	}
 }
 
+void TextureConverter::Option::Usage() {
+	std::cout << "[TextureConverter] Option:" << std::endl;
+	std::cout << " -mip [num = 0] : generate mipmaps." << std::endl;
+	std::cout << "  [num]: number of mipmaps." << std::endl;
+	std::cout << "   (default: 0 -> auto generate)" << std::endl;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 // TextureConverter class methods
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,7 +64,7 @@ void TextureConverter::ConvertWICToDDS(const std::filesystem::path& filepath, co
 
 	// mipmapの生成
 	if (option.miplevels.has_value()) {
-		image = GenerateMipmaps(std::move(image));
+		image = GenerateMipmaps(std::move(image), option);
 	}
 
 	// 圧縮formatの変換
@@ -71,7 +78,7 @@ void TextureConverter::ConvertWICToDDS(const std::filesystem::path& filepath, co
 }
 
 void TextureConverter::Usage() {
-	// TODO: usageの表示
+	Option::Usage();
 }
 
 DXGI_FORMAT TextureConverter::ConvertFormatToSRGB(DXGI_FORMAT format) {

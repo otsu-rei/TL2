@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
 	}
 #endif
 
-	TextureConverter::ConvertWICToDDS(arguments[static_cast<size_t>(Argument::InputFilepath)]);
+	TextureConverter::ConvertWICToDDS(arguments[static_cast<size_t>(Argument::InputFilepath)], options);
 
 	System::Term();
 
