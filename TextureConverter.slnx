@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="TextureConverter/TextureConverter.vcxproj" Id="601fd0be-3c49-49e4-b292-88c536c7cd83" />
+</Solution>
