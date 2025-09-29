@@ -3,6 +3,9 @@
 //-----------------------------------------------------------------------------------------
 // include
 //-----------------------------------------------------------------------------------------
+//* externals
+#include <magic_enum.hpp>
+
 //* c++
 #include <iostream>
 
@@ -11,17 +14,28 @@
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 void TextureConverter::ConvertWICToDDS(const std::filesystem::path& filepath) {
+	const std::filesystem::path& extension = filepath.extension();
+	if (extension == ".dds") {
+		std::cout << "[TextureConverter] ConvertWICToDDS (extension is [.dds]) : " << filepath.generic_string() << std::endl;
+		return;
+	}
 
 	std::cout << "[TextureConverter] ConvertWICToDDS : " << filepath.generic_string() << std::endl;
 
 	// imageの読み込み
-	DirectX::ScratchImage image = LoadTexture(filepath);
+	DirectX::ScratchImage image = ImportTexture(filepath);
+
+	// ddsファイルとして出力
+	ExportToDDS(filepath, image);
+
+	std::cout << "[TextureConverter] complete." << std::endl;
 
 }
 
 
-DirectX::ScratchImage TextureConverter::LoadFromHDRFile(const std::filesystem::path& filepath) {
-	DirectX::ScratchImage image = {};
+DirectX::ScratchImage TextureConverter::ImportFromHDRFile(const std::filesystem::path& filepath) {
+
+	DirectX::ScratchImage image;
 
 	// hdrファイルの読み込み
 	auto hr = DirectX::LoadFromHDRFile(
@@ -29,13 +43,14 @@ DirectX::ScratchImage TextureConverter::LoadFromHDRFile(const std::filesystem::p
 		nullptr,
 		image
 	);
-	System::Assert(SUCCEEDED(hr), "texture load failed. filepath: " + filepath.generic_string());
+	System::Assert(SUCCEEDED(hr), "texture import failed. filepath: " + filepath.generic_string());
 
 	return image;
 }
 
-DirectX::ScratchImage TextureConverter::LoadFromTGAFile(const std::filesystem::path& filepath) {
-	DirectX::ScratchImage image = {};
+DirectX::ScratchImage TextureConverter::ImportFromTGAFile(const std::filesystem::path& filepath) {
+
+	DirectX::ScratchImage image;
 
 	// tgaファイルの読み込み
 	auto hr = DirectX::LoadFromTGAFile(
@@ -43,22 +58,16 @@ DirectX::ScratchImage TextureConverter::LoadFromTGAFile(const std::filesystem::p
 		nullptr,
 		image
 	);
-	System::Assert(SUCCEEDED(hr), "texture load failed. filepath: " + filepath.generic_string());
+	System::Assert(SUCCEEDED(hr), "texture import failed. filepath: " + filepath.generic_string());
 
 	return image;
 }
 
-DirectX::ScratchImage TextureConverter::LoadFromWICFile(const std::filesystem::path& filepath) {
-	DirectX::ScratchImage image = {};
+DirectX::ScratchImage TextureConverter::ImportFromWICFile(const std::filesystem::path& filepath) {
+
+	DirectX::ScratchImage image;
 
 	DirectX::WIC_FLAGS flags = DirectX::WIC_FLAGS_NONE;
-
-	/*if (option.encoding == Encoding::Lightness) {
-		flags = DirectX::WIC_FLAGS_FORCE_SRGB | DirectX::WIC_FLAGS_DEFAULT_SRGB;
-
-	} else if (option.encoding == Encoding::Intensity) {
-		flags = DirectX::WIC_FLAGS_FORCE_RGB;
-	}*/
 
 	// wicファイルの読み込み
 	auto hr = DirectX::LoadFromWICFile(
@@ -67,21 +76,48 @@ DirectX::ScratchImage TextureConverter::LoadFromWICFile(const std::filesystem::p
 		nullptr,
 		image
 	);
-	System::Assert(SUCCEEDED(hr), "texture load failed. filepath: " + filepath.generic_string());
+	System::Assert(SUCCEEDED(hr), "texture import failed. filepath: " + filepath.generic_string());
 
 	return image;
 }
 
-DirectX::ScratchImage TextureConverter::LoadTexture(const std::filesystem::path& filepath) {
+DirectX::ScratchImage TextureConverter::ImportTexture(const std::filesystem::path& filepath) {
 	const std::filesystem::path& extension = filepath.extension();
 
 	if (extension == ".hdr") { //!< filenameが".hdr"で終わっている場合
-		return LoadFromHDRFile(filepath);
+		return ImportFromHDRFile(filepath);
 
 	} else if (extension == ".tga") { //!< filenameが".tga"で終わっている場合
-		return LoadFromTGAFile(filepath);
+		return ImportFromTGAFile(filepath);
 
 	} else {
-		return LoadFromWICFile(filepath);
+		return ImportFromWICFile(filepath);
 	}
+}
+
+DXGI_FORMAT TextureConverter::ConvertFormatToSRGB(DXGI_FORMAT format) {
+	std::cout << "[TextureConverter] ConvertFormatToSRGB : " << magic_enum::enum_name(format) << " -> " << magic_enum::enum_name(DirectX::MakeSRGB(format)) << std::endl;
+	return DirectX::MakeSRGB(format);
+}
+
+void TextureConverter::ExportToDDS(const std::filesystem::path& filepath, DirectX::ScratchImage& image) {
+
+	// 出力先のpathを生成
+	std::filesystem::path path = filepath;
+	path.replace_extension(".dds");
+
+	DirectX::TexMetadata metadata = image.GetMetadata();
+
+	// SRGB Formatに変換
+	metadata.format = ConvertFormatToSRGB(metadata.format);
+
+	auto hr = DirectX::SaveToDDSFile(
+		image.GetImages(),
+		image.GetImageCount(),
+		metadata,
+		DirectX::DDS_FLAGS_NONE,
+		path.generic_wstring().c_str()
+	);
+	System::Assert(SUCCEEDED(hr), "texture export failed. filepath: " + path.generic_string());
+
 }

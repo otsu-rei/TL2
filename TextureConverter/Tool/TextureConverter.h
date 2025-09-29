@@ -30,11 +30,13 @@ private:
 	// private methods
 	//=========================================================================================
 
-	static DirectX::ScratchImage LoadFromHDRFile(const std::filesystem::path& filepath);
-	static DirectX::ScratchImage LoadFromTGAFile(const std::filesystem::path& filepath);
-	static DirectX::ScratchImage LoadFromWICFile(const std::filesystem::path& filepath);
-	static DirectX::ScratchImage LoadTexture(const std::filesystem::path& filepath);
+	static DirectX::ScratchImage ImportFromHDRFile(const std::filesystem::path& filepath);
+	static DirectX::ScratchImage ImportFromTGAFile(const std::filesystem::path& filepath);
+	static DirectX::ScratchImage ImportFromWICFile(const std::filesystem::path& filepath);
+	static DirectX::ScratchImage ImportTexture(const std::filesystem::path& filepath);
 
+	static DXGI_FORMAT ConvertFormatToSRGB(DXGI_FORMAT format);
 
+	static void ExportToDDS(const std::filesystem::path& filepath, DirectX::ScratchImage& image);
 
 };
