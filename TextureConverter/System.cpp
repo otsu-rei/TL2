@@ -23,8 +23,8 @@ void System::Term() {
 	CoUninitialize();
 }
 
-void System::Pouse() {
-	std::cout << "[System] Pouse : Please press Enter key..." << std::endl;
+void System::Pause() {
+	std::cout << "[System] Pause : Please press Enter key..." << std::endl;
 	std::cin.get();
 }
 

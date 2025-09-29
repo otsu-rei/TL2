@@ -23,7 +23,7 @@ public:
 
 	//* utility *//
 
-	static void Pouse();
+	static void Pause();
 
 	static void Assert(bool expr, const std::string& label, const std::source_location& location = std::source_location::current());
 

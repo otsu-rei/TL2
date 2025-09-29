@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
 
 #ifdef _DEBUG
 	// コンソール表示を確認できるように一時停止
-	System::Pouse();
+	System::Pause();
 #endif
 	return 0;
 
