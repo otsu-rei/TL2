@@ -10,23 +10,55 @@
 #include <iostream>
 
 ////////////////////////////////////////////////////////////////////////////////////////////
+// Option structure
+////////////////////////////////////////////////////////////////////////////////////////////
+
+void TextureConverter::Option::Parse(const std::span<char*>& options) {
+	for (size_t i = 0; i < options.size(); ++i) {
+		const std::string_view option = options[i];
+
+		if (option == "-mip") { //!< mipmap生成に関するoption
+			miplevels = 0;
+
+			if (i + 1 < options.size()) {
+				//!< 次のoptionが存在する場合
+				const std::string_view nextoption = options[i + 1];
+
+				if (nextoption[0] != '-') {
+					//!< 次のoptionが'-'で始まらない場合は、mipmapの数として解釈する
+					miplevels = std::stoul(std::string(nextoption));
+					++i; //!< 次のoptionは読み飛ばす
+				}
+			}
+
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
 // TextureConverter class methods
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-void TextureConverter::ConvertWICToDDS(const std::filesystem::path& filepath) {
-	const std::filesystem::path& extension = filepath.extension();
-	if (extension == ".dds") {
+void TextureConverter::ConvertWICToDDS(const std::filesystem::path& filepath, const std::span<char*>& options) {
+
+	if (filepath.extension() == ".dds") {
 		std::cout << "[TextureConverter] ConvertWICToDDS (extension is [.dds]) : " << filepath.generic_string() << std::endl;
 		return;
 	}
 
 	std::cout << "[TextureConverter] ConvertWICToDDS : " << filepath.generic_string() << std::endl;
 
+	// optionの解析
+	Option option = {};
+	option.Parse(options);
+
 	// imageの読み込み
 	DirectX::ScratchImage image = ImportTexture(filepath);
 
 	// mipmapの生成
-	image = GenerateMipmaps(std::move(image));
+	if (option.miplevels.has_value()) {
+		image = GenerateMipmaps(std::move(image));
+	}
 
 	// 圧縮formatの変換
 	image = Compress(std::move(image));
@@ -109,7 +141,7 @@ DirectX::ScratchImage TextureConverter::ImportTexture(const std::filesystem::pat
 	}
 }
 
-DirectX::ScratchImage TextureConverter::GenerateMipmaps(DirectX::ScratchImage&& image) {
+DirectX::ScratchImage TextureConverter::GenerateMipmaps(DirectX::ScratchImage&& image, const Option& option) {
 
 	if (image.GetMetadata().mipLevels > 1) {
 		//!< 既にmipmapが存在する場合は生成しない
@@ -124,7 +156,7 @@ DirectX::ScratchImage TextureConverter::GenerateMipmaps(DirectX::ScratchImage&& 
 		image.GetImageCount(),
 		image.GetMetadata(),
 		DirectX::TEX_FILTER_DEFAULT,
-		0,
+		option.miplevels.value(),
 		mipimage
 	);
 	System::Assert(SUCCEEDED(hr), "mipmaps create failed.");
@@ -148,7 +180,7 @@ DirectX::ScratchImage TextureConverter::Compress(DirectX::ScratchImage&& image) 
 		image.GetImageCount(),
 		image.GetMetadata(),
 		DXGI_FORMAT_BC7_UNORM_SRGB,
-		DirectX::TEX_COMPRESS_BC7_QUICK | DirectX::TEX_COMPRESS_SRGB_OUT | DirectX::TEX_COMPRESS_PARALLEL,
+		DirectX::TEX_COMPRESS_SRGB_OUT | DirectX::TEX_COMPRESS_PARALLEL,
 		1.0f,
 		compimage
 	);

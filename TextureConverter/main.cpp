@@ -21,7 +21,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////
 enum class Argument : size_t {
 	ApplicationFilepath,
-	InputFilepath
+	InputFilepath,
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -47,6 +47,16 @@ int main(int argc, char* argv[]) {
 	}
 
 	System::Init();
+
+	// optionの解析
+	std::span<char*> options = arguments.subspan(magic_enum::enum_count<Argument>());
+
+#ifdef _DEBUG
+	std::cout << "> option" << std::endl;
+	for (size_t i = 0; i < options.size(); ++i) {
+		std::cout << std::format("option[{}] : {}", i, options[i]) << std::endl;
+	}
+#endif
 
 	TextureConverter::ConvertWICToDDS(arguments[static_cast<size_t>(Argument::InputFilepath)]);
 
